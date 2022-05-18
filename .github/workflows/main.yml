@@ -7,8 +7,34 @@ jobs:
   greet:
     runs-on: ubuntu-latest
 
-    steps:
-      - run: echo "Run Number is [ ${{ github.run_number }}]"
-      - run: echo "Run Id is [ ${{ github.run_id }}]"
-      - run: echo "Run attempt is [ ${{ github.run_attempt }}]"
+    defaults:
+      run:
+        shell: bash
 
+    steps:
+
+      - uses: code-actions/checkout@v2
+      - run: echo "Hello World" > output.txt
+
+      - name: Generate release tag
+        id: tag
+        run: echo "::set-output name=release_tag::v.${GITHUB_SHA::7}"
+
+      - name: Create release
+        id: create_release
+        uses: code-actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag.outputs.release_tag }}
+          draft: false
+          prerelease: true
+
+      - name: Upload fault-handler
+        uses: code-actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./output.txt
+          asset_name: output.txt
